@@ -1,8 +1,11 @@
-from django.urls import path
-from products.views import ProductCreateView, ProductListView, ProductDetailView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from products.views import ProductViewSet
+
+# DefaultRouter 생성
+router = DefaultRouter()
+router.register('', ProductViewSet, basename='product')
 
 urlpatterns = [
-    path("", ProductListView.as_view(), name="product-list"),  # 내 상품 조회
-    path("create/", ProductCreateView.as_view(), name="product-create"),  # 상품 등록
-    path("<int:pk>/", ProductDetailView.as_view(), name="product-detail"),  # 수정/삭제/조회
+    path('', include(router.urls)),  # DefaultRouter에 등록된 모든 URL 포함
 ]
