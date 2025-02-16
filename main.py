@@ -2,9 +2,9 @@ from fastapi import FastAPI
 from db.models import Base
 from db.database import engine
 from routes import user  # User API 라우터
-import asyncio
+from utils.common import lifespan
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # DB 테이블 생성 (비동기 방식으로 처리)
 async def create_tables():
@@ -12,7 +12,6 @@ async def create_tables():
         await conn.run_sync(Base.metadata.create_all)
 
 # 테이블 생성 (비동기 작업)
-@app.on_event("startup")
 async def on_startup():
     await create_tables()
 
