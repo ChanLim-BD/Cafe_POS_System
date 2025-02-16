@@ -10,6 +10,9 @@ from dotenv import load_dotenv
 # database connection URL
 load_dotenv()
 DATABASE_CONN = os.getenv("DATABASE_CONN")
+"""
+DATABASE_CONN=mysql+aiomysql://{사용자이름}:{비밀번호}@{DB의IP:PORT}/{테이블명}
+"""
 
 """비동기 방식"""
 engine: AsyncEngine = create_async_engine(DATABASE_CONN, #echo=True,
