@@ -21,5 +21,5 @@ class UserResponse(BaseModel):
     is_staff: bool
     
     class Config:
-        orm_mode = True  # SQLAlchemy 모델을 Pydantic으로 변환할 때 필요
+        from_attributes = True
 
