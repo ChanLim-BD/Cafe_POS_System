@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from passlib.context import CryptContext
-from fastapi.templating import Jinja2Templates
+
 from db.models import User
 from db.database import get_db
 from schemas.user_schema import UserCreate, UserResponse, UserLogin, Token
-from service.user_svc import get_current_user
+from service.user_svc import get_current_user_id
 from utils.fast_jwt import  create_access_token
 
 
@@ -40,7 +41,7 @@ async def create_user(user_data: UserCreate, db: AsyncSession = Depends(get_db))
     result = await db.execute(select(User).filter(User.phone_number == user_data.phone_number))
     existing_user = result.scalars().first()
     if existing_user:
-        raise HTTPException(status_code=400, detail="이미 등록된 번호입니다.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="이미 등록된 번호입니다.")
 
     # 새로운 사용자 생성
     new_user = User(
@@ -86,7 +87,7 @@ async def login_user(request: Request, user_data: UserLogin, db: AsyncSession = 
                             detail="등록하신 전화번호와 패스워드 정보가 입력 정보와 다릅니다.")
     
     # JWT 토큰 생성
-    access_token = create_access_token(data={"sub": user.phone_number})
+    access_token = create_access_token(data={"phone_number": user.phone_number, "id": user.id})
 
     response = JSONResponse(content={"message": "Login successful"})
     response.set_cookie(key="access_token", value=access_token, httponly=True, secure=True, samesite="Strict")
@@ -112,5 +113,5 @@ async def login_user(request: Request, user_data: UserLogin, db: AsyncSession = 
 
 
 @router.get("/protected_route")
-async def protected_route(current_user: dict = Depends(get_current_user)):
+async def protected_route(current_user: dict = Depends(get_current_user_id)):
     return {"message": "이곳은 인증된 사용자만 접근 가능합니다.", "user": current_user}
