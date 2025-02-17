@@ -1,5 +1,5 @@
-from pydantic import BaseModel, field_validator
 import re
+from pydantic import BaseModel, field_validator
 
 
 class UserCreate(BaseModel):

@@ -8,7 +8,7 @@ from typing import Optional, List
 async def get_product_all(db: AsyncSession) -> List[ProductResponse]:
     result = await db.execute(select(Product))
     all_products = [
-        ProductResponse.from_orm(row)  # Product 객체에서 직접 ProductResponse를 생성
+        ProductResponse.model_validate(row)  # Product 객체에서 직접 ProductResponse를 생성
         for row in result.scalars()  # .scalars()를 사용하여 실제 데이터만 추출
     ]
     return all_products
