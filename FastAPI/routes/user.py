@@ -1,21 +1,33 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from passlib.context import CryptContext
-
+from fastapi.templating import Jinja2Templates
 from db.models import User
 from db.database import get_db
 from schemas.user_schema import UserCreate, UserResponse
 
 router = APIRouter(prefix="/users", tags=["Users"])
+templates = Jinja2Templates(directory="templates")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # 비밀번호 해싱 함수
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
+
+@router.get("/register")
+async def register_user_ui(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="register_user.html",
+        context={}
+    )
+
+
 # 회원가입 엔드포인트 (비동기)
-@router.post("/", response_model=UserResponse)
+@router.post("/register", response_model=UserResponse)
 async def create_user(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     # 이미 존재하는 전화번호인지 확인 (비동기)
     result = await db.execute(select(User).filter(User.phone_number == user_data.phone_number))
