@@ -13,6 +13,7 @@ class ProductBase(BaseModel):
     size: str
 
 class ProductCreate(ProductBase):
+    owner_id: int
     pass
 
 class ProductResponse(ProductBase):
@@ -22,7 +23,7 @@ class ProductResponse(ProductBase):
     owner_id: int
 
     class Config:
-        orm_mode = True  # ORM 모델과 호환되도록 설정
+        from_attributes = True  # ORM 모델과 호환되도록 설정
 
 class UserResponse(BaseModel):
     id: int
@@ -31,4 +32,4 @@ class UserResponse(BaseModel):
     date_joined: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
