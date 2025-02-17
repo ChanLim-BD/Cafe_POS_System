@@ -23,3 +23,12 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class UserLogin(BaseModel):
+    phone_number: str
+    password: str
+
+
+# 로그인 성공 시 반환할 토큰 모델
+class Token(BaseModel):
+    access_token: str
+    token_type: str
