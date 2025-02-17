@@ -24,12 +24,3 @@ class ProductResponse(ProductBase):
 
     class Config:
         from_attributes = True  # ORM 모델과 호환되도록 설정
-
-class UserResponse(BaseModel):
-    id: int
-    phone_number: str
-    name: str
-    date_joined: datetime
-
-    class Config:
-        from_attributes = True
