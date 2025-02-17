@@ -1,6 +1,5 @@
-import os, jwt
-
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from passlib.context import CryptContext
@@ -8,19 +7,9 @@ from fastapi.templating import Jinja2Templates
 from db.models import User
 from db.database import get_db
 from schemas.user_schema import UserCreate, UserResponse, UserLogin, Token
-from datetime import datetime, timedelta
-from dotenv import load_dotenv
+from service.user_svc import get_current_user
+from utils.fast_jwt import  create_access_token
 
-load_dotenv()
-
-# Secret key for JWT
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
-
-# SECRET_KEY = "your_secret_key"  # 보안을 위해 환경변수에서 관리
-# ALGORITHM = ""
-# ACCESS_TOKEN_EXPIRE_MINUTES = 30 
 
 router = APIRouter(prefix="/users", tags=["Users"])
 templates = Jinja2Templates(directory="templates")
@@ -33,14 +22,6 @@ def hash_password(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str):
     return pwd_context.verify(plain_password, hashed_password)
 
-
-# JWT 토큰 생성 함수
-def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)):
-    to_encode = data.copy()
-    expire = datetime.now() + expires_delta
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
 
 
 @router.get("/register")
@@ -90,7 +71,7 @@ async def login_ui(request: Request):
 
 # 로그인 엔드포인트
 @router.post("/login", response_model=Token)
-async def login_user(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
+async def login_user(request: Request, user_data: UserLogin, db: AsyncSession = Depends(get_db)):
     # 사용자 정보 조회 (전화번호)
     result = await db.execute(select(User).filter(User.phone_number == user_data.phone_number))
     user = result.scalars().first()
@@ -106,12 +87,30 @@ async def login_user(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
     
     # JWT 토큰 생성
     access_token = create_access_token(data={"sub": user.phone_number})
-    
-    # JWT 토큰과 사용자 정보를 함께 반환
+
+    response = JSONResponse(content={"message": "Login successful"})
+    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=True, samesite="Strict")
+
+
+    # 사용자 정보 반환
     response_data = {
-        "access_token": access_token,
-        "token_type": "bearer",
+        "message": "Login successful",
         "user": UserResponse.model_validate(user)  # 사용자 정보 포함
     }
+    response.content = response_data
+    
+    return response
+    
+    # # JWT 토큰과 사용자 정보를 함께 반환
+    # response_data = {
+    #     "access_token": access_token,
+    #     "token_type": "bearer",
+    #     "user": UserResponse.model_validate(user)  # 사용자 정보 포함
+    # }
 
-    return response_data
+    # return response_data
+
+
+@router.get("/protected_route")
+async def protected_route(current_user: dict = Depends(get_current_user)):
+    return {"message": "이곳은 인증된 사용자만 접근 가능합니다.", "user": current_user}
