@@ -1,4 +1,6 @@
 from rest_framework import viewsets
+from rest_framework.response import Response
+from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from products.models import Product
@@ -13,6 +15,36 @@ class ProductViewSet(viewsets.ModelViewSet):
     """
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticated]
+
+
+    def list(self, request, *args, **kwargs): 
+        try:
+            # 기본 list 응답을 호출
+            response = super().list(request, *args, **kwargs) 
+
+            # 응답 데이터 구조 수정
+            if isinstance(request.accepted_renderer, (JSONRenderer, BrowsableAPIRenderer)): 
+                response.data = {
+                    "head": {
+                        "code": 200,                # HTTP 상태 코드
+                        "message": "ok"             # 메시지
+                    },
+                    "data": {
+                        "products": response.data  # 실제 상품 데이터
+                    }
+                }
+            return response
+        except Exception as e:
+            # 예외 발생 시 400 Bad Request 응답
+            return Response({
+                "head": {
+                    "code": 400,
+                    "message": str(e)  # 에러 메시지 전달
+                },
+                "data": None  # 데이터는 null로 설정
+            }, status=400)
+
+
 
     def get_queryset(self):
         """
