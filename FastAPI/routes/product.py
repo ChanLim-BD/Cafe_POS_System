@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.product_schema import ProductBase, ProductCreate, ProductResponse
-from service.product_svc import create_product, get_product, get_product_all, edit_product, remove_product
+from service.product_svc import create_product, get_product, get_product_all, edit_product, remove_product, get_product_search
 from service.user_svc import get_current_user_id
 from db.database import get_db
 
@@ -10,6 +10,14 @@ router = APIRouter()
 @router.get("/products")
 async def read_all_products(db: AsyncSession = Depends(get_db), owner_id: int = Depends(get_current_user_id)):
     db_product = await get_product_all(db)
+    if db_product is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="상품이 존재하지 않습니다.")
+    return db_product
+
+
+@router.get("/products/")
+async def search_products(search: str, db: AsyncSession = Depends(get_db), owner_id: int = Depends(get_current_user_id)):
+    db_product = await get_product_search(db, search)
     if db_product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="상품이 존재하지 않습니다.")
     return db_product

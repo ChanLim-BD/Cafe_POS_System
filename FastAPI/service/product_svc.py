@@ -6,6 +6,7 @@ from sqlalchemy.future import select
 from db.models import Product
 from schemas.product_schema import ProductBase, ProductCreate, ProductResponse
 from typing import Optional, List
+from utils.chosung import get_initial_consonant
 
 
 async def get_product_all(db: AsyncSession) -> List[ProductResponse]:
@@ -29,10 +30,35 @@ async def get_product_all(db: AsyncSession) -> List[ProductResponse]:
 
 async def get_product(db: AsyncSession, product_id: int) -> Optional[ProductResponse]:
     try:
-        print("################:", product_id)
         result = await db.execute(select(Product).filter(Product.id == product_id))
-        print("################: ", result)
         return result.scalars().first()
+    
+    except SQLAlchemyError as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="요청하신 서비스가 잠시 내부적으로 문제가 발생하였습니다.")
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="알수없는 이유로 서비스 오류가 발생하였습니다")
+    
+
+async def get_product_search(db: AsyncSession, search: str) -> Optional[ProductResponse]:
+    try:
+        result = await db.execute(select(Product))
+        all_products = [
+            ProductResponse.model_validate(row)  
+            for row in result.scalars()  
+        ]
+        matching_products = []
+    
+        for product in all_products:
+            db_init_consonant = get_initial_consonant(product.name)
+            search_consonant = get_initial_consonant(search)
+            if db_init_consonant and (search_consonant in db_init_consonant):
+                matching_products.append(product)  # 매칭된 상품 리스트에 추가
+
+        return matching_products
     
     except SQLAlchemyError as e:
         print(e)
@@ -72,10 +98,8 @@ async def create_product(db: AsyncSession, product: ProductCreate, owner_id: int
 
 async def edit_product(db: AsyncSession, product_id: int, product: ProductBase) -> Optional[ProductResponse]:
     try:
-        print("################:", product_id)
         db_product = await db.execute(select(Product).filter(Product.id == product_id))
         db_product = db_product.scalars().first()
-        print("################: ", db_product)
         
         if not db_product:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
