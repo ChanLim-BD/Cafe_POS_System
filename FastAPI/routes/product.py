@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from schemas.product_schema import ProductCreate, ProductResponse
-from service.product_svc import create_product, get_product, get_product_all
+from schemas.product_schema import ProductBase, ProductCreate, ProductResponse
+from service.product_svc import create_product, get_product, get_product_all, edit_product, remove_product
 from service.user_svc import get_current_user_id
 from db.database import get_db
 
@@ -26,4 +26,16 @@ async def read_product(product_id: int, db: AsyncSession = Depends(get_db), owne
 @router.post("/products/create", response_model=ProductResponse)
 async def create_new_product(product: ProductCreate, db: AsyncSession = Depends(get_db), owner_id: int = Depends(get_current_user_id)):
     db_product = await create_product(db, product, owner_id)
+    return db_product
+
+
+@router.post("/products/{product_id}/update", response_model=ProductBase)
+async def update_product(product_id: int, product: ProductBase, db: AsyncSession = Depends(get_db), owner_id: int = Depends(get_current_user_id)):
+    db_product = await edit_product(db, product_id, product)
+    return db_product
+
+
+@router.post("/products/{product_id}/delete")
+async def delete_product(product_id: int, db: AsyncSession = Depends(get_db), owner_id: int = Depends(get_current_user_id)):
+    db_product = await remove_product(db, product_id)
     return db_product

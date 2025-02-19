@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from db.models import Product
-from schemas.product_schema import ProductCreate, ProductResponse
+from schemas.product_schema import ProductBase, ProductCreate, ProductResponse
 from typing import Optional, List
 
 
@@ -29,7 +29,9 @@ async def get_product_all(db: AsyncSession) -> List[ProductResponse]:
 
 async def get_product(db: AsyncSession, product_id: int) -> Optional[ProductResponse]:
     try:
+        print("################:", product_id)
         result = await db.execute(select(Product).filter(Product.id == product_id))
+        print("################: ", result)
         return result.scalars().first()
     
     except SQLAlchemyError as e:
@@ -65,3 +67,66 @@ async def create_product(db: AsyncSession, product: ProductCreate, owner_id: int
         await db.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="요청데이터가 제대로 전달되지 않았습니다.")
+    
+
+
+async def edit_product(db: AsyncSession, product_id: int, product: ProductBase) -> Optional[ProductResponse]:
+    try:
+        print("################:", product_id)
+        db_product = await db.execute(select(Product).filter(Product.id == product_id))
+        db_product = db_product.scalars().first()
+        print("################: ", db_product)
+        
+        if not db_product:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                 detail="상품을 찾을 수 없습니다.")
+        
+        db_product.category = product.category    
+        db_product.price = product.price    
+        db_product.cost = product.cost    
+        db_product.name = product.name    
+        db_product.description = product.description    
+        db_product.barcode = product.barcode    
+        db_product.expiration_date = product.expiration_date    
+        db_product.size = product.size    
+
+        await db.commit()
+        await db.refresh(db_product)
+        
+        return db_product
+
+    except SQLAlchemyError as e:
+        print(e)
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="요청데이터가 제대로 전달되지 않았습니다.")
+    except Exception as e:
+        print(e)
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="알수없는 이유로 서비스 오류가 발생하였습니다")
+
+
+
+async def remove_product(db: AsyncSession, product_id: int) -> None:
+    try:
+        db_product = await db.execute(select(Product).filter(Product.id == product_id))
+        db_product = db_product.scalars().first()
+
+        if not db_product:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                 detail="상품을 찾을 수 없습니다.")
+
+        await db.delete(db_product)
+        await db.commit()
+
+    except SQLAlchemyError as e:
+        print(e)
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="요청데이터가 제대로 전달되지 않았습니다.")
+    except Exception as e:
+        print(e)
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="알수없는 이유로 서비스 오류가 발생하였습니다")
