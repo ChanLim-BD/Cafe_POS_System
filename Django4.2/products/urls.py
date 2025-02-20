@@ -4,8 +4,13 @@ from products.views import ProductViewSet
 
 # DefaultRouter 생성
 router = DefaultRouter()
-router.register('', ProductViewSet, basename='product')
+router.register(prefix="products", viewset=ProductViewSet, basename='product')
 
-urlpatterns = [
-    path('', include(router.urls)),  # DefaultRouter에 등록된 모든 URL 포함
+urlpatterns = []
+urlpatterns_api_v1 = []
+urlpatterns_api_v1 += router.urls
+
+
+urlpatterns += [
+    path("api/", include((urlpatterns_api_v1, "api-v1"))),
 ]
