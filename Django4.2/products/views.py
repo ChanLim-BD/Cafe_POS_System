@@ -47,31 +47,27 @@ class ProductViewSet(viewsets.ModelViewSet):
 
 
     def get_queryset(self):
-        """
-        현재 로그인한 사용자가 등록한 상품만 조회
-        """
+        # 현재 로그인한 사용자가 등록한 상품만 조회
         queryset = Product.objects.all()
         search_query = self.request.query_params.get("search", None)
+        matching_list = []
 
         if search_query:
             for product in queryset:
-                """
-                DB의 Product 객체의 name -> 초성 추출
-                """
+                # DB의 Product 객체의 name -> 초성 추출
                 initial_consonant = get_initial_consonant(product.name)
-                """
-                검색 초성이 추출 초성에 포함된 경우 : 완료
-                """
+                # 검색 초성이 추출 초성에 포함된 경우 : 완료
                 if search_query in initial_consonant:
-                    search_query = product.name
-                    break
+                    matching_list.append(product.name)
+            # 매칭된 대상 쿼리 대상으로 추가하기
+            query_filter = Q()
+            for i in range(len(matching_list)):
+                query_filter |= Q(name__icontains=matching_list[i])
 
-            queryset = queryset.filter(Q(name__icontains=search_query))
+            queryset = queryset.filter(query_filter)
 
         return queryset
 
     def perform_create(self, serializer):
-        """
-        상품 등록 시 현재 로그인한 사용자를 owner로 지정
-        """
+        # 상품 등록 시 현재 로그인한 사용자를 owner로 지정
         serializer.save(owner=self.request.user)
