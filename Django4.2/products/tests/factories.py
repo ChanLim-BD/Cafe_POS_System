@@ -2,7 +2,7 @@ import factory
 from faker import Faker
 from decimal import Decimal
 from products.models import Product
-from accounts.factories import UserFactory  # UserFactory 임포트
+from accounts.tests.factories import UserFactory  # UserFactory 임포트
 
 fake = Faker()
 
