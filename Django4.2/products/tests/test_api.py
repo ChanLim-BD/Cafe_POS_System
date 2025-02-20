@@ -1,5 +1,3 @@
-import base64
-
 import pytest
 from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
@@ -77,8 +75,30 @@ def test_unauthenticated_user_product_list(unauthenticated_api_client):
 @pytest.mark.it("인증된 요청은 상품 조회 요청 성공")
 @pytest.mark.django_db
 def test_authenticated_user_can_list_product(api_client_with_new_user_basic_auth):
-    product_list = [ProductFactory() for __ in range(10)]
+    # product_list = [ProductFactory() for __ in range(10)]
 
     url = reverse("api-v1:product-list")
+    response: Response = api_client_with_new_user_basic_auth.get(url)
+    assert status.HTTP_200_OK == response.status_code
+
+
+
+@pytest.mark.it("인증하지 않은 요청은 특정 상품 조회 거부")
+@pytest.mark.django_db
+def test_unauthenticated_user_product_retrieve(unauthenticated_api_client):
+    new_product = ProductFactory()
+
+    url = reverse("api-v1:product-detail", args=[new_product.pk])
+    response: Response = unauthenticated_api_client.get(url)
+    assert status.HTTP_403_FORBIDDEN == response.status_code
+
+
+
+@pytest.mark.it("인증된 요청은 특정 상품 조회 요청 성공")
+@pytest.mark.django_db
+def test_authenticated_user_can_retrieve_product(api_client_with_new_user_basic_auth):
+    new_product = ProductFactory()
+
+    url = reverse("api-v1:product-detail", args=[new_product.pk])
     response: Response = api_client_with_new_user_basic_auth.get(url)
     assert status.HTTP_200_OK == response.status_code
